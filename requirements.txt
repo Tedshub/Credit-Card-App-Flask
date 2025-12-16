@@ -1,0 +1,14 @@
+# Web Framework
+Flask>=2.0.0
+
+# Flask Extension for Cross-Origin Resource Sharing
+Flask-CORS>=3.0.0
+
+# Data Manipulation and Analysis
+pandas>=1.3.0
+
+# Scientific Computing
+numpy>=1.21.0
+
+# Model Persistence and Serialization
+joblib>=1.0.0

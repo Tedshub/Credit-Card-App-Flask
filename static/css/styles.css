@@ -1,0 +1,87 @@
+body {
+    background-color: #f8f9fa;
+}
+
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.result-container {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.fraud {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.normal {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+pre {
+    text-align: left;
+    font-size: 0.7em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.container h1 {
+    color: #343a40;
+    font-weight: 700;
+}
+
+.container h3 {
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Tambahan untuk tab dan textarea */
+.nav-tabs {
+    margin-bottom: 1.5rem;
+}
+
+#jsonInput {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+}
+
+/* Styling for API Documentation */
+.accordion-button:not(.collapsed) {
+    background-color: #e9ecef;
+}
+
+.accordion-body pre {
+    font-size: 0.8em;
+}
+
+/* API Test Results */
+#apiTestResults {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .result-container {
+        font-size: 1.2em;
+    }
+}

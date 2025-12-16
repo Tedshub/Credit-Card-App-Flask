@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Fraud Detection Application</h1>
+        
+        <!-- NAVIGASI TAB -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-tab-pane" type="button" role="tab" aria-controls="manual-tab-pane" aria-selected="true">Manual Input</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-tab-pane" type="button" role="tab" aria-controls="json-tab-pane" aria-selected="false">JSON Input</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-tab-pane" type="button" role="tab" aria-controls="api-tab-pane" aria-selected="false">API Documentation</button>
+            </li>
+        </ul>
+        
+        <!-- KONTEN TAB -->
+        <div class="tab-content" id="myTabContent">
+            <!-- TAB 1: MANUAL INPUT -->
+            <div class="tab-pane fade show active" id="manual-tab-pane" role="tabpanel" aria-labelledby="manual-tab" tabindex="0">
+                <form id="predictionForm">
+                    <div class="row">
+                        <!-- Kolom Kiri: Detail Transaksi -->
+                        <div class="col-md-6">
+                            <h3>Transaction Details</h3>
+                            
+                            <div class="mb-3">
+                                <label for="cc_num" class="form-label">Credit Card Number</label>
+                                <input type="number" class="form-control" id="cc_num" name="cc_num" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="amt" class="form-label">Amount ($)</label>
+                                <input type="number" class="form-control" id="amt" name="amt" step="0.01" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="zip" class="form-label">ZIP Code</label>
+                                <input type="number" class="form-control" id="zip" name="zip" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="age" class="form-label">Age</label>
+                                <input type="number" class="form-control" id="age" name="age" required>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="hour" class="form-label">Transaction Hour</label>
+                                    <select class="form-select" id="hour" name="hour" required>
+                                        <option value="" selected disabled>Select Hour...</option>
+                                        {% for key, value in hour_options.items() %}
+                                        <option value="{{ value }}">{{ key }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="dayofweek" class="form-label">Day of Week</label>
+                                    <select class="form-select" id="dayofweek" name="dayofweek" required>
+                                        <option value="" selected disabled>Select Day...</option>
+                                        {% for key, value in day_of_week_options.items() %}
+                                        <option value="{{ value }}">{{ key }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="month" class="form-label">Month</label>
+                                <select class="form-select" id="month" name="month" required>
+                                    <option value="" selected disabled>Select Month...</option>
+                                    {% for key, value in month_options.items() %}
+                                    <option value="{{ value }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <h3>Location (Select on Map)</h3>
+                            <div class="mb-3">
+                                <label for="distance_km" class="form-label">Distance (km) - <i>Calculated Automatically</i></label>
+                                <input type="text" class="form-control" id="distance_km" name="distance_km" readonly>
+                            </div>
+
+                            <input type="hidden" id="lat" name="lat">
+                            <input type="hidden" id="long" name="long">
+                            <input type="hidden" id="merch_lat" name="merch_lat">
+                            <input type="hidden" id="merch_long" name="merch_long">
+                        </div>
+
+                        <!-- Kolom Kanan: Kategori -->
+                        <div class="col-md-6">
+                            <h3>Categories</h3>
+                            
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Transaction Category</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="" selected disabled>Select Category...</option>
+                                    {% for key, value in category_options.items() %}
+                                    <option value="{{ value }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-select" id="gender" name="gender" required>
+                                    <option value="" selected disabled>Select Gender...</option>
+                                    {% for key, value in gender_options.items() %}
+                                    <option value="{{ value }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <select class="form-select" id="state" name="state" required>
+                                    <option value="" selected disabled>Select State...</option>
+                                    {% for key, value in state_options.items() %}
+                                    <option value="{{ value }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="city" class="form-label">City</label>
+                                <select class="form-select" id="city" name="city" required>
+                                    <option value="" selected disabled>Select City...</option>
+                                    {% for key, value in city_options.items() %}
+                                    <option value="{{ value.encoded }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="city_pop" class="form-label">City Population</label>
+                                <input type="number" class="form-control" id="city_pop" name="city_pop" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h3>Location Map</h3>
+                            <p><i>Blue marker is your location, red marker is merchant. Drag markers to change location.</i></p>
+                            <div id="map"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Predict</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 2: JSON INPUT -->
+            <div class="tab-pane fade" id="json-tab-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
+                <div class="mt-4">
+                    <h3>Paste JSON Data</h3>
+                    <p>Paste the complete JSON object in the format below. Only the <code>"input"</code> object will be used for prediction.</p>
+                    
+                    <form id="jsonPredictionForm">
+                        <div class="mb-3">
+                            <label for="jsonInput" class="form-label">JSON Input</label>
+                            <textarea class="form-control" id="jsonInput" name="jsonInput" rows="15" placeholder='{
+  "id": 1,
+  "description": "Normal - Low amount grocery",
+  "input": {
+    "cc_num": 2291163933867244.0,
+    "category": 10.0,
+    "amt": 2.86,
+    ...
+  }
+}' required></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">Predict from JSON</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 3: API DOCUMENTATION -->
+            <div class="tab-pane fade" id="api-tab-pane" role="tabpanel" aria-labelledby="api-tab" tabindex="0">
+                <div class="mt-4">
+                    <h2>Fraud Detection API Documentation</h2>
+                    <p>Below are the available API endpoints for the Fraud Detection system:</p>
+                    
+                    <div class="accordion" id="apiAccordion">
+                        <!-- Prediction API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="predictHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#predictCollapse" aria-expanded="true" aria-controls="predictCollapse">
+                                    <strong>Prediction API</strong>
+                                </button>
+                            </h2>
+                            <div id="predictCollapse" class="accordion-collapse collapse show" aria-labelledby="predictHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>POST /api/predict</h5>
+                                    <p>Make a fraud prediction based on transaction data.</p>
+                                    
+                                    <h6>Request Body (JSON):</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "cc_num": 2291163933867244.0,
+  "category": 10.0,
+  "amt": 2.86,
+  "gender": 1.0,
+  "city": 168.0,
+  "state": 40.0,
+  "zip": 28202,
+  "lat": 35.2271,
+  "long": -80.8431,
+  "city_pop": 897720,
+  "merch_lat": 35.2300,
+  "merch_long": -80.8600,
+  "hour": 14.0,
+  "dayofweek": 2.0,
+  "month": 6.0,
+  "age": 35.0
+}</code></pre>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "id": 1,
+  "description": "Normal - Low risk transaction",
+  "input": {
+    "cc_num": 2291163933867244.0,
+    "category": 10.0,
+    "amt": 2.86,
+    "gender": 1.0,
+    "city": 168.0,
+    "state": 40.0,
+    "zip": 28202,
+    "lat": 35.2271,
+    "long": -80.8431,
+    "city_pop": 897720,
+    "merch_lat": 35.2300,
+    "merch_long": -80.8600,
+    "hour": 14.0,
+    "dayofweek": 2.0,
+    "month": 6.0,
+    "age": 35.0
+  },
+  "prediction": 0,
+  "fraud_probability": 0.001234,
+  "is_fraud": false,
+  "distance_km": 2.14
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testPredictBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Categories API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="categoriesHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#categoriesCollapse" aria-expanded="false" aria-controls="categoriesCollapse">
+                                    <strong>Categories API</strong>
+                                </button>
+                            </h2>
+                            <div id="categoriesCollapse" class="accordion-collapse collapse" aria-labelledby="categoriesHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/categories</h5>
+                                    <p>Get all available transaction categories.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "Grocery": 10.0,
+  "Online Shopping": 5.0,
+  "Gas Transport": 3.0,
+  "Restaurant": 7.0,
+  "Jewelry": 9.0,
+  "Misc": 5.0,
+  "Personal Care": 12.0,
+  "Home": 13.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testCategoriesBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Genders API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="gendersHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gendersCollapse" aria-expanded="false" aria-controls="gendersCollapse">
+                                    <strong>Genders API</strong>
+                                </button>
+                            </h2>
+                            <div id="gendersCollapse" class="accordion-collapse collapse" aria-labelledby="gendersHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/genders</h5>
+                                    <p>Get all available gender options.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "Female": 1.0,
+  "Male": 0.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testGendersBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- States API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="statesHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#statesCollapse" aria-expanded="false" aria-controls="statesCollapse">
+                                    <strong>States API</strong>
+                                </button>
+                            </h2>
+                            <div id="statesCollapse" class="accordion-collapse collapse" aria-labelledby="statesHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/states</h5>
+                                    <p>Get all available states.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "North Carolina": 40.0,
+  "Utah": 44.0,
+  "New York": 34.0,
+  "Florida": 9.0,
+  "Michigan": 22.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testStatesBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cities API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="citiesHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#citiesCollapse" aria-expanded="false" aria-controls="citiesCollapse">
+                                    <strong>Cities API</strong>
+                                </button>
+                            </h2>
+                            <div id="citiesCollapse" class="accordion-collapse collapse" aria-labelledby="citiesHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/cities</h5>
+                                    <p>Get all available cities with their data.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "Charlotte": {
+    "encoded": 168.0,
+    "population": 897720,
+    "zip": 28202,
+    "lat": 35.2271,
+    "long": -80.8431
+  },
+  "Raleigh": {
+    "encoded": 16.0,
+    "population": 474069,
+    "zip": 27601,
+    "lat": 35.7796,
+    "long": -78.6382
+  },
+  ...
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testCitiesBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Days of Week API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="daysHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#daysCollapse" aria-expanded="false" aria-controls="daysCollapse">
+                                    <strong>Days of Week API</strong>
+                                </button>
+                            </h2>
+                            <div id="daysCollapse" class="accordion-collapse collapse" aria-labelledby="daysHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/days_of_week</h5>
+                                    <p>Get all days of the week.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "Monday": 0.0,
+  "Tuesday": 1.0,
+  "Wednesday": 2.0,
+  "Thursday": 3.0,
+  "Friday": 4.0,
+  "Saturday": 5.0,
+  "Sunday": 6.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testDaysBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Months API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="monthsHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#monthsCollapse" aria-expanded="false" aria-controls="monthsCollapse">
+                                    <strong>Months API</strong>
+                                </button>
+                            </h2>
+                            <div id="monthsCollapse" class="accordion-collapse collapse" aria-labelledby="monthsHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/months</h5>
+                                    <p>Get all months of the year.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "January": 1.0,
+  "February": 2.0,
+  "March": 3.0,
+  "April": 4.0,
+  "May": 5.0,
+  "June": 6.0,
+  "July": 7.0,
+  "August": 8.0,
+  "September": 9.0,
+  "October": 10.0,
+  "November": 11.0,
+  "December": 12.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testMonthsBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hours API -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="hoursHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hoursCollapse" aria-expanded="false" aria-controls="hoursCollapse">
+                                    <strong>Hours API</strong>
+                                </button>
+                            </h2>
+                            <div id="hoursCollapse" class="accordion-collapse collapse" aria-labelledby="hoursHeading" data-bs-parent="#apiAccordion">
+                                <div class="accordion-body">
+                                    <h5>GET /api/hours</h5>
+                                    <p>Get all hours of the day.</p>
+                                    
+                                    <h6>Response:</h6>
+                                    <pre class="bg-light p-3 rounded"><code>{
+  "0": 0.0,
+  "1": 1.0,
+  "2": 2.0,
+  ...
+  "23": 23.0
+}</code></pre>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="testHoursBtn">Test API</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- API Test Results -->
+                    <div class="mt-4">
+                        <h4>API Test Results</h4>
+                        <div id="apiTestResults" class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                            <p class="text-muted">Click on the "Test API" buttons to see the results.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Area untuk menampilkan hasil (di luar tab) -->
+        <div id="resultArea"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
