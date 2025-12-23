@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)  # Tambahkan ini untuk mengaktifkan CORS untuk semua rute
 
 # --- LOAD MODEL ---
-MODEL_PATH = 'models/fraud_detection.pkl'
+MODEL_PATH = 'models/xgboost_optimized.pkl'
 pipeline = joblib.load(MODEL_PATH)
 
 # --- FITUR MODEL ---
